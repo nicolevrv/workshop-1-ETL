@@ -318,35 +318,34 @@ ORDER BY total_hires DESC;
 ```
 
 >
-+-----------------------------------------+-------------+
-| technology_name                         | total_hires |
-+-----------------------------------------+-------------+
-| game development                        |         519 |
-| devops                                  |         495 |
-| system administration                   |         293 |
-| development - cms backend               |         284 |
-| database administration                 |         282 |
-| adobe experience manager                |         282 |
-| client success                          |         271 |
-| security                                |         266 |
-| development - frontend                  |         266 |
-| mulesoft                                |         260 |
-| qa manual                               |         259 |
-| salesforce                              |         256 |
-| data engineer                           |         255 |
-| business analytics / project management |         255 |
-| development - backend                   |         255 |
-| business intelligence                   |         254 |
-| development - fullstack                 |         254 |
-| development - cms frontend              |         251 |
-| security compliance                     |         250 |
-| design                                  |         249 |
-| qa automation                           |         243 |
-| sales                                   |         239 |
-| social media community management       |         237 |
-| technical writing                       |         223 |
-+-----------------------------------------+-------------+
-
+""
+| Technology                      | Total Hires |
+|----------------------------------|------------|
+| Game Development                 | 519 |
+| DevOps                           | 495 |
+| System Administration            | 293 |
+| Development - CMS Backend        | 284 |
+| Database Administration          | 282 |
+| Adobe Experience Manager         | 282 |
+| Client Success                   | 271 |
+| Security                         | 266 |
+| Development - Frontend           | 266 |
+| Mulesoft                         | 260 |
+| QA Manual                        | 259 |
+| Salesforce                       | 256 |
+| Data Engineer                    | 255 |
+| Business Analytics / Project Mgmt| 255 |
+| Development - Backend            | 255 |
+| Business Intelligence            | 254 |
+| Development - Fullstack          | 254 |
+| Development - CMS Frontend       | 251 |
+| Security Compliance              | 250 |
+| Design                           | 249 |
+| QA Automation                    | 243 |
+| Sales                            | 239 |
+| Social Media Community Mgmt      | 237 |
+| Technical Writing                | 223 |
+""
 ---
 
 ### KPI 2 — Hires by Year
