@@ -279,23 +279,24 @@ Starting Load process (Load)...
 ✅ Load completed successfully to staging tables.
 Staging fact rows loaded: ~49XXX
 ✅ Final tables loaded successfully.
-🎉 ETL Pipeline completed successfully.
+ETL Pipeline completed successfully.
 ```
 
-### 9. Generate KPI visualizations
+
+### 9. Open the Power BI Dashboard
+
+Open `visualizations/visualization.pbix` in Power BI Desktop.
+Connect to your MySQL instance using the same credentials in your `.env` file.
+```
+
+### 10. Run SQL queries.
 
 ```bash
-python kpi_visualizations.py
+Run mysql -u user -password --table < sql\queries.sql
+To view the KPI outputs on your terminal.
+
+Connect to your MySQL instance using the same credentials in your `.env` file.
 ```
-
-Or run the notebook interactively:
-
-```bash
-jupyter notebook notebooks/kpi_visualizations.ipynb
-```
-
-Charts are saved to the `visualizations/` folder.
-
 ---
 
 ## 📊 KPIs & Example Outputs
@@ -305,98 +306,189 @@ All queries run against the final DW tables — never the raw CSV.
 ### KPI 1 — Hires by Technology
 
 ```sql
-SELECT dt.technology_name, SUM(fa.hired_flag) AS total_hires
-FROM fact_application fa
-JOIN dim_technology dt ON fa.technology_key = dt.technology_key
-GROUP BY dt.technology_name
+SELECT 
+    t.technology_name,
+    COUNT(*) AS total_hires
+FROM fact_application f
+JOIN dim_technology t 
+    ON f.technology_key = t.technology_key
+WHERE f.hired_flag = 1
+GROUP BY t.technology_name
 ORDER BY total_hires DESC;
 ```
 
-> Bar chart — shows which technologies produce the most hires
+>
++-----------------------------------------+-------------+
+| technology_name                         | total_hires |
++-----------------------------------------+-------------+
+| game development                        |         519 |
+| devops                                  |         495 |
+| system administration                   |         293 |
+| development - cms backend               |         284 |
+| database administration                 |         282 |
+| adobe experience manager                |         282 |
+| client success                          |         271 |
+| security                                |         266 |
+| development - frontend                  |         266 |
+| mulesoft                                |         260 |
+| qa manual                               |         259 |
+| salesforce                              |         256 |
+| data engineer                           |         255 |
+| business analytics / project management |         255 |
+| development - backend                   |         255 |
+| business intelligence                   |         254 |
+| development - fullstack                 |         254 |
+| development - cms frontend              |         251 |
+| security compliance                     |         250 |
+| design                                  |         249 |
+| qa automation                           |         243 |
+| sales                                   |         239 |
+| social media community management       |         237 |
+| technical writing                       |         223 |
++-----------------------------------------+-------------+
 
 ---
 
 ### KPI 2 — Hires by Year
 
 ```sql
-SELECT dd.year, SUM(fa.hired_flag) AS total_hires
-FROM fact_application fa
-JOIN dim_date dd ON fa.date_key = dd.date_key
-GROUP BY dd.year
-ORDER BY dd.year;
+SELECT 
+    d.year,
+    COUNT(*) AS total_hires
+FROM fact_application f
+JOIN dim_date d 
+    ON f.date_key = d.date_key
+WHERE f.hired_flag = 1
+GROUP BY d.year
+ORDER BY d.year;
 ```
 
-> Line chart with area fill — shows the hiring trend over time
+> 
++------+-------------+
+| year | total_hires |
++------+-------------+
+| 2018 |        1409 |
+| 2019 |        1524 |
+| 2020 |        1485 |
+| 2021 |        1485 |
+| 2022 |         795 |
++------+-------------+
 
 ---
 
 ### KPI 3 — Hires by Seniority
 
 ```sql
-SELECT ds.seniority_level, SUM(fa.hired_flag) AS total_hires
-FROM fact_application fa
-JOIN dim_seniority ds ON fa.seniority_key = ds.seniority_key
-GROUP BY ds.seniority_level
+SELECT 
+    s.seniority_level,
+    COUNT(*) AS total_hires
+FROM fact_application f
+JOIN dim_seniority s 
+    ON f.seniority_key = s.seniority_key
+WHERE f.hired_flag = 1
+GROUP BY s.seniority_level
 ORDER BY total_hires DESC;
 ```
 
-> Pie chart — shows the distribution of hires across seniority levels
+> 
++-----------------+-------------+
+| seniority_level | total_hires |
++-----------------+-------------+
+| intern          |         985 |
+| junior          |         977 |
+| trainee         |         973 |
+| architect       |         971 |
+| senior          |         939 |
+| lead            |         929 |
+| mid-level       |         924 |
++-----------------+-------------+
 
 ---
 
 ### KPI 4 — Hires by Country over Years (USA, Brazil, Colombia, Ecuador)
 
 ```sql
-SELECT dc.country_name, dd.year, SUM(fa.hired_flag) AS total_hires
-FROM fact_application fa
-JOIN dim_country dc ON fa.country_key = dc.country_key
-JOIN dim_date    dd ON fa.date_key    = dd.date_key
-WHERE dc.country_name IN ('usa', 'brazil', 'colombia', 'ecuador')
-GROUP BY dc.country_name, dd.year
-ORDER BY dc.country_name, dd.year;
+SELECT 
+    d.year,
+    c.country_name,
+    COUNT(*) AS total_hires
+FROM fact_application f
+JOIN dim_country c 
+    ON f.country_key = c.country_key
+JOIN dim_date d
+    ON f.date_key = d.date_key
+WHERE f.hired_flag = 1
+  AND c.country_name IN ('usa','brazil','colombia','ecuador')
+GROUP BY d.year, c.country_name
+ORDER BY d.year, c.country_name;
 ```
 
-> Multi-line chart — compares hiring trends across 4 focus countries over time
+>
++------+--------------+-------------+
+| year | country_name | total_hires |
++------+--------------+-------------+
+| 2018 | brazil       |           9 |
+| 2018 | colombia     |           7 |
+| 2018 | ecuador      |           1 |
+| 2019 | brazil       |           7 |
+| 2019 | colombia     |           8 |
+| 2019 | ecuador      |           3 |
+| 2020 | brazil       |           6 |
+| 2020 | colombia     |           8 |
+| 2020 | ecuador      |           8 |
+| 2021 | brazil       |           7 |
+| 2021 | colombia     |           1 |
+| 2021 | ecuador      |           5 |
+| 2022 | brazil       |           4 |
+| 2022 | colombia     |           1 |
+| 2022 | ecuador      |           3 |
++------+--------------+-------------+
 
 ---
 
-### KPI 5 — Hire Rate (%) by Technology
+### KPI 5 — Hire Rate (%)
 
 ```sql
-SELECT dt.technology_name,
-       COUNT(*) AS total_applications,
-       SUM(fa.hired_flag) AS total_hires,
-       ROUND(SUM(fa.hired_flag) * 100.0 / COUNT(*), 2) AS hire_rate_pct
-FROM fact_application fa
-JOIN dim_technology dt ON fa.technology_key = dt.technology_key
-GROUP BY dt.technology_name
-ORDER BY hire_rate_pct DESC;
+SELECT 
+    ROUND(
+        SUM(CASE WHEN hired_flag = 1 THEN 1 ELSE 0 END) 
+        * 100.0 / COUNT(*), 2
+    ) AS hire_rate_percentage
+FROM fact_application;
 ```
 
-> Horizontal bar chart — reveals which technologies have the highest selection rate, not just the most applications
+> 
++----------------------+
+| hire_rate_percentage |
++----------------------+
+|                13.40 |
++----------------------+
 
 ---
 
 ### KPI 6 — Average Scores by Seniority
 
 ```sql
-SELECT ds.seniority_level,
-       ROUND(AVG(fa.code_challenge_score), 2)      AS avg_code_score,
-       ROUND(AVG(fa.technical_interview_score), 2) AS avg_interview_score
-FROM fact_application fa
-JOIN dim_seniority ds ON fa.seniority_key = ds.seniority_key
-GROUP BY ds.seniority_level
-ORDER BY avg_interview_score DESC;
+SELECT 
+    ROUND(AVG(code_challenge_score),2) AS avg_code_score,
+    ROUND(AVG(technical_interview_score),2) AS avg_interview_score
+FROM fact_application
+WHERE hired_flag = 1;
 ```
 
-> Grouped bar chart — compares average code challenge vs interview performance per seniority level
+> 
++----------------+---------------------+
+| avg_code_score | avg_interview_score |
++----------------+---------------------+
+|           8.50 |                8.48 |
++----------------+---------------------+
 
 ---
 
 ## 📁 Project Structure
 
 ```
-etl-workshop-1/
+workshop-1/
 │
 ├── data/
 │   ├── raw/
@@ -409,26 +501,28 @@ etl-workshop-1/
 ├── sql/
 │   ├── create_tables.sql
 │   └── load_tables.sql
+│   └── queries.sql
 │
 ├── diagrams/
 │   └── star_schema.png
 │
 ├── src/
+│   ├── __init__.py
 │   ├── extract.py
 │   ├── transform.py
 │   ├── load.py
 │   └── main.py
 │
 ├── visualizations/
-│   ├── kpi_dashboard.png
-│   ├── kpi1_hires_by_technology.png
-│   ├── kpi2_hires_by_year.png
-│   ├── kpi3_hires_by_seniority.png
-│   ├── kpi4_hires_by_country_year.png
-│   ├── kpi5_hire_rate_by_technology.png
-│   └── kpi6_avg_scores_by_seniority.png
+│   ├── powerbifullDashboard.png
+│   ├── powerbiAsHr.png
+│   ├── powerbiRpCpY.png
+│   ├── powerbiRpSl.png
+│   ├── powerbiRpT.png
+│   ├── powerbiRpY.png
+│   └── visualization.pbix
 │
-├── kpi_visualizations.py
+├── .env
 ├── README.md
 ├── requirements.txt
 └── .gitignore
@@ -444,9 +538,8 @@ etl-workshop-1/
 | pandas | Data extraction, transformation, and dimension building |
 | SQLAlchemy + PyMySQL | Database connection and data loading |
 | MySQL 8 | Data Warehouse |
-| matplotlib | KPI visualizations |
 | python-dotenv | Secure credential management via `.env` |
-| Jupyter Notebook | Interactive KPI exploration |
+| Jupyter Notebook | Testing|
 | Git / GitHub | Version control and portfolio hosting |
 
 ---
