@@ -26,7 +26,7 @@ This project simulates a real-world Data Engineering challenge. The goal is to d
 1. **Extracts** raw recruitment data from a CSV file (`candidates.csv`, 50k rows)
 2. **Transforms** it into a clean dimensional model (Star Schema) using Python
 3. **Loads** it into a MySQL Data Warehouse via a two-phase staging strategy
-4. **Exposes analytical KPIs** through SQL queries and matplotlib visualizations
+4. **Exposes analytical KPIs** through SQL queries and Power BI visualizations
 
 All transformations happen in Python **before** data reaches the database, following a strict ETL (not ELT) approach.
 
