@@ -23,14 +23,10 @@ def extract_data(raw_data_path):
         print("Extraction completed successfully.")
         print(f"Rows extracted: {len(df)}")
 
-        # FIX E1: validate types immediately inside extract so callers always
-        # receive a properly typed DataFrame.
         df = validate_type(df)
         return df
 
     except FileNotFoundError:
-        # FIX E2: raise instead of returning None so callers don't crash on
-        # NoneType operations (e.g. df.columns in main.py).
         raise SystemExit(f"[Extract] File not found: {file_path}")
     except Exception as e:
         raise SystemExit(f"[Extract] Unexpected error: {e}")
