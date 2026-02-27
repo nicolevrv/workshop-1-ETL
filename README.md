@@ -287,13 +287,14 @@ ETL Pipeline completed successfully.
 
 Open `visualizations/visualization.pbix` in Power BI Desktop.
 Connect to your MySQL instance using the same credentials in your `.env` file.
-```
 
 ### 10. Run SQL queries.
 
 Run 
-```bash
+
+```
 mysql -u user -password --table < sql\queries.sql
+
 ```
 To view the KPI outputs on your terminal.
 Connect to your MySQL instance using the same credentials in your `.env` file.
