@@ -291,14 +291,14 @@ Connect to your MySQL instance using the same credentials in your `.env` file.
 
 ### 10. Run SQL queries.
 
+Run 
 ```bash
-Run mysql -u user -password --table < sql\queries.sql
-To view the KPI outputs on your terminal.
-
-Connect to your MySQL instance using the same credentials in your `.env` file.
+mysql -u user -password --table < sql\queries.sql
 ```
----
+To view the KPI outputs on your terminal.
+Connect to your MySQL instance using the same credentials in your `.env` file.
 
+---
 ## 📊 KPIs & Example Outputs
 
 All queries run against the final DW tables — never the raw CSV.
