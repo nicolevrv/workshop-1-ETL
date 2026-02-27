@@ -1,3 +1,5 @@
+USE recruitment_dw;
+
 SELECT 
     t.technology_name,
     COUNT(*) AS total_hires
