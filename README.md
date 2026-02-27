@@ -98,6 +98,7 @@ candidates.csv  ──Extract──▶  transform_data()  ──Load──▶  *
                         │    year              │
                         └─────────────────────┘
 ```
+A .png file of the Star Schema is also included in the diagrams/ directory.
 
 ### Design Decisions
 
