@@ -318,8 +318,8 @@ ORDER BY total_hires DESC;
 ```
 
 >
-""
-| Technology                      | Total Hires |
+
+| Technology                       | Total Hires |
 |----------------------------------|------------|
 | Game Development                 | 519 |
 | DevOps                           | 495 |
@@ -345,7 +345,7 @@ ORDER BY total_hires DESC;
 | Sales                            | 239 |
 | Social Media Community Mgmt      | 237 |
 | Technical Writing                | 223 |
-""
+
 ---
 
 ### KPI 2 — Hires by Year
@@ -363,15 +363,14 @@ ORDER BY d.year;
 ```
 
 > 
-+------+-------------+
-| year | total_hires |
-+------+-------------+
-| 2018 |        1409 |
-| 2019 |        1524 |
-| 2020 |        1485 |
-| 2021 |        1485 |
-| 2022 |         795 |
-+------+-------------+
+
+| Year | Total Hires |
+|------|------------|
+| 2018 | 1409 |
+| 2019 | 1524 |
+| 2020 | 1485 |
+| 2021 | 1485 |
+| 2022 | 795 |
 
 ---
 
@@ -390,17 +389,16 @@ ORDER BY total_hires DESC;
 ```
 
 > 
-+-----------------+-------------+
-| seniority_level | total_hires |
-+-----------------+-------------+
-| intern          |         985 |
-| junior          |         977 |
-| trainee         |         973 |
-| architect       |         971 |
-| senior          |         939 |
-| lead            |         929 |
-| mid-level       |         924 |
-+-----------------+-------------+
+
+| Seniority Level | Total Hires |
+|-----------------|------------|
+| Intern          | 985 |
+| Junior          | 977 |
+| Trainee         | 973 |
+| Architect       | 971 |
+| Senior          | 939 |
+| Lead            | 929 |
+| Mid-Level       | 924 |
 
 ---
 
@@ -423,25 +421,24 @@ ORDER BY d.year, c.country_name;
 ```
 
 >
-+------+--------------+-------------+
-| year | country_name | total_hires |
-+------+--------------+-------------+
-| 2018 | brazil       |           9 |
-| 2018 | colombia     |           7 |
-| 2018 | ecuador      |           1 |
-| 2019 | brazil       |           7 |
-| 2019 | colombia     |           8 |
-| 2019 | ecuador      |           3 |
-| 2020 | brazil       |           6 |
-| 2020 | colombia     |           8 |
-| 2020 | ecuador      |           8 |
-| 2021 | brazil       |           7 |
-| 2021 | colombia     |           1 |
-| 2021 | ecuador      |           5 |
-| 2022 | brazil       |           4 |
-| 2022 | colombia     |           1 |
-| 2022 | ecuador      |           3 |
-+------+--------------+-------------+
+
+| Year | Country   | Total Hires |
+|------|----------|------------|
+| 2018 | Brazil   | 9 |
+| 2018 | Colombia | 7 |
+| 2018 | Ecuador  | 1 |
+| 2019 | Brazil   | 7 |
+| 2019 | Colombia | 8 |
+| 2019 | Ecuador  | 3 |
+| 2020 | Brazil   | 6 |
+| 2020 | Colombia | 8 |
+| 2020 | Ecuador  | 8 |
+| 2021 | Brazil   | 7 |
+| 2021 | Colombia | 1 |
+| 2021 | Ecuador  | 5 |
+| 2022 | Brazil   | 4 |
+| 2022 | Colombia | 1 |
+| 2022 | Ecuador  | 3 |
 
 ---
 
@@ -457,11 +454,10 @@ FROM fact_application;
 ```
 
 > 
-+----------------------+
-| hire_rate_percentage |
-+----------------------+
-|                13.40 |
-+----------------------+
+
+| Metric              | Value |
+|---------------------|-------|
+| Hire Rate (%)       | 13.40 |
 
 ---
 
@@ -476,11 +472,10 @@ WHERE hired_flag = 1;
 ```
 
 > 
-+----------------+---------------------+
-| avg_code_score | avg_interview_score |
-+----------------+---------------------+
-|           8.50 |                8.48 |
-+----------------+---------------------+
+| Metric                       | Value |
+|------------------------------|-------|
+| Average Code Challenge Score | 8.50  |
+| Average Interview Score      | 8.48  |
 
 ---
 
