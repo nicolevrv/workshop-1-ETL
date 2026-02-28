@@ -38,8 +38,8 @@ All transformations happen in Python **before** data reaches the database, follo
 CSV File                    Python (ETL)                  MySQL DW
 ───────────                 ────────────                  ────────
 candidates.csv  ──Extract──▶  transform_data()  ──Load──▶  *_stg tables
-                              (dimensions +                     │
-                              fact table)                       │ load_tables.sql
+                              (dimensions +                    │
+                              fact table)                      │ load_tables.sql
                                                                ▼
                                                          Final DW Tables
                                                                │
@@ -58,45 +58,43 @@ candidates.csv  ──Extract──▶  transform_data()  ──Load──▶  *
 ### Diagram
 
 ```
-                        ┌─────────────────────┐
-                        │   dim_experience    │
-                        │─────────────────────│
-                        │ PK experience_key   │
-                        │    experience_range │
-                        └──────────┬──────────┘
-                                   │
-┌──────────────────┐               │              ┌──────────────────┐
-│   dim_seniority  │               │              │   dim_country    │
-│──────────────────│               │              │──────────────────│
-│ PK seniority_key │               │              │ PK country_key   │
-│    seniority_lvl │               │              │    country_name  │
-└────────┬─────────┘               │              └────────┬─────────┘
-         │                         │                       │
-         │              ┌──────────▼──────────┐            │
-         │              │   fact_application  │            │
-         └────────────▶│─────────────────────│◀───────────┘
-                        │ PK application_key  │
-                        │ FK experience_key   │◀──────────────────────┐
-                        │ FK seniority_key    │                       │
-                        │ FK country_key      │          ┌────────────┴──────┐
-                        │ FK technology_key   │          │   dim_technology  │
-                        │ FK date_key         │          │───────────────────│
-                        │    code_ch_score    │          │ PK technology_key │
-                        │    tech_int_score   │          │    technology_name│
-                        │    hired_flag       │          └───────────────────┘
-                        └──────────┬──────────┘
-                                   │
-                        ┌──────────▼───────────┐
-                        │       dim_date       │
-                        │──────────────────────│
-                        │ PK date_key          │
-                        │    full_date         │
-                        │    day               │
-                        │    month             │
-                        │    month_name        │
-                        │    quarter           │
-                        │    year              │
-                        └──────────────────────┘
+          ┌─────────────────────┐         ┌──────────────────────┐
+          │   dim_experience    │         │    dim_candidate     │
+          │─────────────────────│         │──────────────────────│
+          │ PK experience_key   │         │ PK candidate_key     │
+          │    experience_range │         │    first_name        │
+          └──────────┬──────────┘         │    last_name         │
+                     │                    │    email             │
+┌──────────────────┐ │                    └──────────┬───────────┘
+│   dim_seniority  │ │                               │
+│──────────────────│ │              ┌────────────────┴
+│ PK seniority_key │ │              │                      
+│    seniority_lvl │ │   ┌──────────▼──────────┐           
+└────────┬─────────┘ └──▶│  fact_application  │
+         │               │─────────────────────│
+         └──────────────▶│ PK application_key  │◀──────────────────────┐
+                         │ FK experience_key   │                       │
+                         │ FK candidate_key    │          ┌────────────┴──────┐
+                         │ FK seniority_key    │          │   dim_technology  │
+                         │ FK country_key      │          │───────────────────│
+                         │ FK technology_key   │          │ PK technology_key │
+                         │ FK date_key         │          │    technology_name│
+                         │    code_ch_score    │          └───────────────────┘
+                         │    tech_int_score   │
+                         │    hired_flag       │◀──────────────────────┐
+                         └──────────┬──────────┘                       │
+                                    │                    ┌─────────────┴────┐
+                         ┌──────────▼───────────┐        │   dim_country    │
+                         │       dim_date       │        │──────────────────│
+                         │──────────────────────│        │ PK country_key   │
+                         │ PK date_key          │        │    country_name  │
+                         │    full_date         │        └──────────────────┘
+                         │    day               │
+                         │    month             │
+                         │    month_name        │
+                         │    quarter           │
+                         │    year              │
+                         └──────────────────────┘
 ```
 A .png file of the Star Schema is also included in the diagrams/ directory.
 
@@ -107,6 +105,9 @@ All dimension primary keys (`experience_key`, `seniority_key`, etc.) are auto-ge
 
 **Why a separate `dim_experience`?**
 Raw `YOE` (years of experience) is a continuous number that is not analytically useful on its own for grouping. Bucketing it into discrete ranges (`0-2`, `3-5`, `6-10`, `10+`) during transformation means every KPI query can `GROUP BY experience_range` without repeating CASE logic.
+
+**Why `dim_candidate`?**
+Separating candidate personal information (`first_name`, `last_name`, `email`) into its own dimension follows the principle of storing descriptive attributes close to their subject. It also avoids repeating candidate data on every application row in the fact table.
 
 **Why `dim_date` instead of storing the date directly on the fact?**
 A date dimension allows grouping by year, quarter, month, or month name with a single join — no `EXTRACT()` or `DATE_FORMAT()` calls required in analytical queries. This is standard Kimball dimensional modeling practice.
@@ -155,8 +156,8 @@ Each record in `fact_application` represents a single application event submitte
 | `hired_flag` | `1` if `code_challenge_score >= 7 AND technical_interview_score >= 7`, else `0` |
 | Experience range | `pd.cut()` with `include_lowest=True` bins YOE into `0-2 / 3-5 / 6-10 / 10+`; residual NaN becomes `"Unknown"` |
 | Categorical cast | `experience_range` cast to `str` so SQLAlchemy can serialize it to MySQL |
-| Dimension build | Deduplicate each categorical column, assign `index + 1` as surrogate key |
-| Fact build | Left-join cleaned data against each dimension; drop any row with a null FK after merge |
+| Dimension build | Deduplicate each categorical column, assign `index + 1` as surrogate key — includes `dim_candidate` built from `first_name`, `last_name`, `email` |
+| Fact build | Left-join cleaned data against each dimension (including `dim_candidate`); drop any row with a null FK after merge |
 
 ### Load (`src/load.py`)
 
@@ -270,7 +271,8 @@ Rows extracted: 50000
 Starting Transformation process (Transform)...
 Transformation completed successfully.
 Experience rows : 5
-Seniority rows  : 5
+Candidate rows  : X
+Seniority rows  : 7
 Country rows    : X
 Technology rows : X
 Date rows       : X
@@ -495,7 +497,7 @@ workshop-1/
 │
 ├── sql/
 │   ├── create_tables.sql
-│   └── load_tables.sql
+│   ├── load_tables.sql
 │   └── queries.sql
 │
 ├── diagrams/
@@ -533,6 +535,7 @@ workshop-1/
 | pandas | Data extraction, transformation, and dimension building |
 | SQLAlchemy + PyMySQL | Database connection and data loading |
 | MySQL 8 | Data Warehouse |
+| Power BI | KPI visualizations and interactive dashboard |
 | python-dotenv | Secure credential management via `.env` |
 | Jupyter Notebook | Testing|
 | Git / GitHub | Version control and portfolio hosting |
