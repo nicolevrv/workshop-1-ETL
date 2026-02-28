@@ -1,6 +1,6 @@
 # 🗄️ ETL Workshop 1 — Recruitment Analytics Data Pipeline
 
-> A complete end-to-end ETL pipeline that ingests 50,000 candidate application records from a CSV file, models them into a Star Schema Data Warehouse (MySQL), and exposes 6 analytical KPIs through SQL queries and Python visualizations.
+> A complete end-to-end ETL pipeline that ingests 50,000 candidate application records from a CSV file, models them into a Star Schema Data Warehouse (MySQL), and exposes 6 analytical KPIs through SQL queries and Power BI visualizations.
 
 ---
 
@@ -540,5 +540,6 @@ workshop-1/
 ---
 
 ## 📄 License
+
 
 Developed as part of the ETL (G01) course — Data Engineering and Artificial Intelligence program, Faculty of Engineering and Basic Sciences.
