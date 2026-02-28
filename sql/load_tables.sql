@@ -2,9 +2,9 @@
 -- LOAD FROM STAGING TO FINAL TABLES
 -- Full Reload Strategy
 -- =====================================================
-SELECT COUNT(*) FROM fact_application_stg;
 -- Disable FK checks to allow truncation safely
 SET FOREIGN_KEY_CHECKS = 0;
+
 
 -- -----------------------------------------------------
 -- 1. Truncate Final Tables
@@ -12,12 +12,15 @@ SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE fact_application;
 
 TRUNCATE TABLE dim_experience;
+TRUNCATE TABLE dim_candidate;
 TRUNCATE TABLE dim_seniority;
 TRUNCATE TABLE dim_country;
 TRUNCATE TABLE dim_technology;
 TRUNCATE TABLE dim_date;
 
+
 SET FOREIGN_KEY_CHECKS = 1;
+
 
 -- -----------------------------------------------------
 -- 2. Insert Dimensions from Staging
@@ -26,6 +29,10 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT INTO dim_experience (experience_key, experience_range)
 SELECT experience_key, experience_range
 FROM dim_experience_stg;
+
+INSERT INTO dim_candidate (candidate_key, first_name, last_name, email)
+SELECT candidate_key, first_name, last_name, email
+FROM dim_candidate_stg;
 
 INSERT INTO dim_seniority (seniority_key, seniority_level)
 SELECT seniority_key, seniority_level
@@ -58,6 +65,7 @@ SELECT
     year
 FROM dim_date_stg;
 
+
 -- -----------------------------------------------------
 -- 3. Insert Fact Table
 -- -----------------------------------------------------
@@ -65,6 +73,7 @@ FROM dim_date_stg;
 INSERT INTO fact_application (
     application_key,
     experience_key,
+    candidate_key,
     seniority_key,
     country_key,
     technology_key,
@@ -76,6 +85,7 @@ INSERT INTO fact_application (
 SELECT
     application_key,
     experience_key,
+    candidate_key,
     seniority_key,
     country_key,
     technology_key,
@@ -84,6 +94,7 @@ SELECT
     technical_interview_score,
     hired_flag
 FROM fact_application_stg;
+
 
 -- =====================================================
 -- END LOAD
