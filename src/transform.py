@@ -1,21 +1,27 @@
 import pandas as pd
 
 
+
+
 def transform_data(df):
     """
     Transforms raw candidates data into dimensional tables and a fact-ready dataset.
+
 
     This function follows the Kimball Star Schema methodology:
     it cleans the raw data, derives new columns, builds one dimension
     table per categorical attribute, and constructs a fact table that
     references each dimension via surrogate keys.
 
+
     Args:
         df (pd.DataFrame): Raw candidates data (output of extract_data()).
+
 
     Returns:
         tuple:
             - dim_experience (pd.DataFrame)
+            - dim_candidate (pd.DataFrame)
             - dim_seniority (pd.DataFrame)
             - dim_country (pd.DataFrame)
             - dim_technology (pd.DataFrame)
@@ -23,7 +29,9 @@ def transform_data(df):
             - fact_df (pd.DataFrame)
     """
 
+
     print("Starting Transformation process (Transform)...")
+
 
     # ----------------------------------------------------------------
     # STEP 1 — Normalize column names
@@ -38,6 +46,7 @@ def transform_data(df):
         .str.lower()
         .str.replace(" ", "_")
     )
+
 
     # ----------------------------------------------------------------
     # STEP 2 — Clean string columns
@@ -54,6 +63,7 @@ def transform_data(df):
     df["technology"] = df["technology"].str.strip().str.lower()
     df["seniority"]  = df["seniority"].str.strip().str.lower()
 
+
     # ----------------------------------------------------------------
     # STEP 3 — Normalize application_date to date-only
     # ----------------------------------------------------------------
@@ -63,6 +73,7 @@ def transform_data(df):
     # timestamps would generate two separate date_keys in dim_date,
     # breaking the "one row per date" grain of that dimension.
     df["application_date"] = df["application_date"].dt.normalize()
+
 
     # ----------------------------------------------------------------
     # STEP 4 — Drop rows with nulls in essential columns
@@ -79,6 +90,7 @@ def transform_data(df):
         "technical_interview_score"
     ])
 
+
     # ----------------------------------------------------------------
     # STEP 5 — Range validation
     # ----------------------------------------------------------------
@@ -89,6 +101,7 @@ def transform_data(df):
     df = df[df["yoe"] >= 0]
     df = df[df["code_challenge_score"].between(0, 10)]
     df = df[df["technical_interview_score"].between(0, 10)]
+
 
     # ----------------------------------------------------------------
     # STEP 6 — Create hired_flag (business rule)
@@ -102,6 +115,7 @@ def transform_data(df):
         (df["code_challenge_score"] >= 7) &
         (df["technical_interview_score"] >= 7)
     ).astype(int)
+
 
     # ----------------------------------------------------------------
     # STEP 7 — Create experience_range (derived dimension attribute)
@@ -117,6 +131,7 @@ def transform_data(df):
         df["yoe"], bins=bins, labels=labels, include_lowest=True
     )
 
+
     # Any YOE value that still falls outside all bins after cut() (edge case)
     # is labeled "Unknown" so it can still be stored and grouped in the DW
     # rather than silently dropped or causing a null FK.
@@ -126,10 +141,12 @@ def transform_data(df):
         .fillna("Unknown")
     )
 
+
     # pd.cut() returns a Categorical dtype. SQLAlchemy cannot infer the
     # correct MySQL column type for Categorical, which can cause a
     # serialization error or insert NULL. Casting to plain str resolves this.
     df["experience_range"] = df["experience_range"].astype(str)
+
 
     # ================================================================
     # BUILD DIMENSION TABLES
@@ -145,6 +162,7 @@ def transform_data(df):
     # to isolate the DW from upstream changes and to optimize JOIN performance.
     # ================================================================
 
+
     # ----------------------------------------------------------------
     # dim_experience
     # ----------------------------------------------------------------
@@ -158,6 +176,22 @@ def transform_data(df):
     )
     dim_experience["experience_key"] = dim_experience.index + 1
     dim_experience = dim_experience[["experience_key", "experience_range"]]
+
+
+    # ----------------------------------------------------------------
+    # dim_candidate
+    # ----------------------------------------------------------------
+    # Contains unique candidates identified by first_name, last_name
+    # and email. Deduplication is done across all three columns together
+    # so each unique person gets exactly one candidate_key.
+    dim_candidate = (
+        df[["first_name", "last_name", "email"]]
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+    dim_candidate["candidate_key"] = dim_candidate.index + 1
+    dim_candidate = dim_candidate[["candidate_key", "first_name", "last_name", "email"]]
+
 
     # ----------------------------------------------------------------
     # dim_seniority
@@ -173,6 +207,7 @@ def transform_data(df):
     dim_seniority["seniority_key"] = dim_seniority.index + 1
     dim_seniority = dim_seniority[["seniority_key", "seniority_level"]]
 
+
     # ----------------------------------------------------------------
     # dim_country
     # ----------------------------------------------------------------
@@ -187,6 +222,7 @@ def transform_data(df):
     dim_country["country_key"] = dim_country.index + 1
     dim_country = dim_country[["country_key", "country_name"]]
 
+
     # ----------------------------------------------------------------
     # dim_technology
     # ----------------------------------------------------------------
@@ -200,6 +236,7 @@ def transform_data(df):
     )
     dim_technology["technology_key"] = dim_technology.index + 1
     dim_technology = dim_technology[["technology_key", "technology_name"]]
+
 
     # ----------------------------------------------------------------
     # dim_date
@@ -216,6 +253,7 @@ def transform_data(df):
         .copy()                # .copy() avoids SettingWithCopyWarning
     )
 
+
     # Derive each calendar attribute from the full_date datetime column.
     dim_date["day"]        = dim_date["full_date"].dt.day
     dim_date["month"]      = dim_date["full_date"].dt.month
@@ -223,13 +261,16 @@ def transform_data(df):
     dim_date["quarter"]    = dim_date["full_date"].dt.quarter       # 1–4
     dim_date["year"]       = dim_date["full_date"].dt.year
 
+
     # Reset index before assigning the surrogate key so keys start at 1
     # regardless of which rows were deduplicated.
     dim_date = dim_date.reset_index(drop=True)
     dim_date["date_key"] = dim_date.index + 1
 
+
     # Reorder columns so date_key appears first (primary key convention).
     dim_date = dim_date[["date_key", "full_date", "day", "month", "month_name", "quarter", "year"]]
+
 
     # ================================================================
     # BUILD FACT TABLE
@@ -243,8 +284,16 @@ def transform_data(df):
     # the corresponding key column — these are caught and dropped below.
     # ================================================================
 
+
     # Join experience dimension to get experience_key
     fact_df = df.merge(dim_experience, on="experience_range", how="left")
+
+    # Join candidate dimension: match on first_name, last_name, email
+    fact_df = fact_df.merge(
+        dim_candidate,
+        on=["first_name", "last_name", "email"],
+        how="left"
+    )
 
     # Join seniority dimension: match on "seniority" (fact side) vs
     # "seniority_level" (dimension side, renamed earlier)
@@ -255,6 +304,7 @@ def transform_data(df):
         how="left"
     )
 
+
     # Join country dimension: match on "country" vs "country_name"
     fact_df = fact_df.merge(
         dim_country,
@@ -262,6 +312,7 @@ def transform_data(df):
         right_on="country_name",
         how="left"
     )
+
 
     # Join technology dimension: match on "technology" vs "technology_name"
     fact_df = fact_df.merge(
@@ -271,6 +322,7 @@ def transform_data(df):
         how="left"
     )
 
+
     # Join date dimension: match on "application_date" vs "full_date"
     fact_df = fact_df.merge(
         dim_date,
@@ -278,6 +330,7 @@ def transform_data(df):
         right_on="full_date",
         how="left"
     )
+
 
     # ----------------------------------------------------------------
     # Drop rows with any null foreign key
@@ -288,14 +341,16 @@ def transform_data(df):
     # (FK constraint) or silently store NULL as a foreign key.
     # Both outcomes are invalid, so these rows are removed here.
     fact_df = fact_df.dropna(subset=[
-        "experience_key", "seniority_key", "country_key",
+        "experience_key", "candidate_key", "seniority_key", "country_key",
         "technology_key", "date_key"
     ])
+
 
     # Reset the index after dropping rows so it is contiguous (0, 1, 2 ...),
     # then assign application_key as index + 1 (surrogate PK for the fact table).
     fact_df = fact_df.reset_index(drop=True)
     fact_df["application_key"] = fact_df.index + 1
+
 
     # Select only the final columns needed for the DW fact table.
     # All intermediate natural key columns (country, seniority, etc.)
@@ -304,6 +359,7 @@ def transform_data(df):
     fact_df = fact_df[[
         "application_key",
         "experience_key",
+        "candidate_key",
         "seniority_key",
         "country_key",
         "technology_key",
@@ -313,21 +369,25 @@ def transform_data(df):
         "hired_flag"
     ]]
 
+
     # Print row counts for each output table after everything is built.
     # Logging here (not earlier) ensures the "completed" message only
     # appears if the entire function ran without errors.
     print("Transformation completed successfully.")
     print(f"Experience rows : {len(dim_experience)}")
+    print(f"Candidate rows  : {len(dim_candidate)}")
     print(f"Seniority rows  : {len(dim_seniority)}")
     print(f"Country rows    : {len(dim_country)}")
     print(f"Technology rows : {len(dim_technology)}")
     print(f"Date rows       : {len(dim_date)}")
     print(f"Fact rows       : {len(fact_df)}")
 
-    # Return all six DataFrames as a tuple.
+
+    # Return all seven DataFrames as a tuple.
     # The caller (main.py) unpacks them in the same order.
     return (
         dim_experience,
+        dim_candidate,
         dim_seniority,
         dim_country,
         dim_technology,

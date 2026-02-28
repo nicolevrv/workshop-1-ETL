@@ -4,25 +4,32 @@ from sqlalchemy import create_engine, text
 from urllib.parse import quote_plus
 
 
-def load_data(dim_experience, dim_seniority, dim_country, dim_technology, dim_date, fact_df):
+
+
+def load_data(dim_experience, dim_candidate, dim_seniority, dim_country, dim_technology, dim_date, fact_df):
     """
     Loads transformed data into the MySQL Data Warehouse staging tables.
+
 
     Follows a full-reload strategy: all staging tables are truncated first,
     then dimensions are inserted before the fact table to satisfy FK constraints.
 
+
     Args:
         dim_experience (pd.DataFrame): Experience dimension data.
+        dim_candidate  (pd.DataFrame): Candidate dimension data.
         dim_seniority  (pd.DataFrame): Seniority dimension data.
         dim_country    (pd.DataFrame): Country dimension data.
         dim_technology (pd.DataFrame): Technology dimension data.
         dim_date       (pd.DataFrame): Date dimension data.
         fact_df        (pd.DataFrame): Fact table data.
 
+
     Raises:
         Exception: Propagates any error that occurs during the database transaction.
     """
     print("Starting Load process (Load)...")
+
 
     # ----------------------------------------------------------------
     # STEP 1 — Load database credentials from the .env file
@@ -40,6 +47,7 @@ def load_data(dim_experience, dim_seniority, dim_country, dim_technology, dim_da
     DB_PORT     = os.getenv("DB_PORT")       # e.g. "3306"
     DB_NAME     = os.getenv("DB_NAME")       # e.g. "etl_workshop"
 
+
     # ----------------------------------------------------------------
     # STEP 2 — Build the database connection engine
     # ----------------------------------------------------------------
@@ -47,6 +55,7 @@ def load_data(dim_experience, dim_seniority, dim_country, dim_technology, dim_da
     # (e.g. "@", "#", "$") in the password string do not break the
     # connection URL format and get interpreted as URL delimiters.
     encoded_password = quote_plus(DB_PASSWORD)
+
 
     # create_engine() builds a SQLAlchemy connection pool to MySQL.
     # The connection string format is:
@@ -56,6 +65,7 @@ def load_data(dim_experience, dim_seniority, dim_country, dim_technology, dim_da
     engine = create_engine(
         f"mysql+pymysql://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
+
 
     try:
         # ----------------------------------------------------------------
@@ -69,11 +79,13 @@ def load_data(dim_experience, dim_seniority, dim_country, dim_technology, dim_da
         # tables must never be promoted from a broken staging layer.
         with engine.begin() as conn:
 
+
             # Disable MySQL foreign key checks temporarily.
             # Staging tables do not have FK constraints, but this guard
             # ensures TRUNCATE can run in any order without MySQL
             # raising constraint violation errors during cleanup.
             conn.execute(text("SET FOREIGN_KEY_CHECKS=0;"))
+
 
             # Truncate all staging tables to remove any data from the
             # previous ETL run. This implements the full-reload strategy:
@@ -83,13 +95,16 @@ def load_data(dim_experience, dim_seniority, dim_country, dim_technology, dim_da
             # dimensions (even though FK checks are off, this is good practice).
             conn.execute(text("TRUNCATE TABLE fact_application_stg;"))
             conn.execute(text("TRUNCATE TABLE dim_experience_stg;"))
+            conn.execute(text("TRUNCATE TABLE dim_candidate_stg;"))
             conn.execute(text("TRUNCATE TABLE dim_seniority_stg;"))
             conn.execute(text("TRUNCATE TABLE dim_country_stg;"))
             conn.execute(text("TRUNCATE TABLE dim_technology_stg;"))
             conn.execute(text("TRUNCATE TABLE dim_date_stg;"))
 
+
             # Re-enable foreign key checks after truncation is complete.
             conn.execute(text("SET FOREIGN_KEY_CHECKS=1;"))
+
 
             # ----------------------------------------------------------------
             # Insert dimension tables BEFORE the fact table.
@@ -102,10 +117,12 @@ def load_data(dim_experience, dim_seniority, dim_country, dim_technology, dim_da
             # index=False prevents pandas from writing its internal 0-based
             # row index as an extra column in the database.
             dim_experience.to_sql("dim_experience_stg", con=conn, if_exists="append", index=False)
+            dim_candidate.to_sql("dim_candidate_stg",   con=conn, if_exists="append", index=False)
             dim_seniority.to_sql("dim_seniority_stg",   con=conn, if_exists="append", index=False)
             dim_country.to_sql("dim_country_stg",       con=conn, if_exists="append", index=False)
             dim_technology.to_sql("dim_technology_stg", con=conn, if_exists="append", index=False)
             dim_date.to_sql("dim_date_stg",             con=conn, if_exists="append", index=False)
+
 
             # Insert the fact table last, after all dimensions are loaded.
             # In the final tables this order is mandatory because fact_application
@@ -114,8 +131,10 @@ def load_data(dim_experience, dim_seniority, dim_country, dim_technology, dim_da
             # with the final promotion step in load_tables.sql.
             fact_df.to_sql("fact_application_stg", con=conn, if_exists="append", index=False)
 
+
         # engine.begin() auto-commits when the with block exits without error.
         print("✅ Load completed successfully to staging tables.")
+
 
         # ----------------------------------------------------------------
         # STEP 4 — Verify the staging load with a row count
@@ -133,6 +152,7 @@ def load_data(dim_experience, dim_seniority, dim_country, dim_technology, dim_da
             result = conn.execute(text("SELECT COUNT(*) FROM fact_application_stg"))
             # result.scalar() fetches the single value returned by COUNT(*).
             print("Staging fact rows loaded:", result.scalar())
+
 
     except Exception as e:
         # Print a clear error message so the developer knows exactly
